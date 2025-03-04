@@ -1,0 +1,4 @@
+/build/
+/sokol-shdc
+/src/shader.glsl.h
+/.cache/

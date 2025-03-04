@@ -1,0 +1,31 @@
+# The Plan
+
+- [x] Minimal application with Sokol
+- [x] Simple build script for Mac, Linux and Wasm
+- [x] Draw triangle
+- [ ] Controls
+- [ ] Camera
+  - [ ] Perspective
+  - [ ] Orthographic
+- [ ] BackgroundRenderer
+- [ ] FixPoint math(?)
+- [ ] Dithering (?)
+- [ ] LineRenderer (for frustum)
+- [ ] Sprite
+  - [ ] SpriteRenderer 
+  - [ ] Billboard (Sprite2D)
+  - [ ] 3D Positioning (Sprite3D)
+  - [ ] Image
+  - [ ] Animate sprite scaling (9 Slice or just scale?)
+  - [ ] Anchored sprite on sprite (portrait on the left/right etc)
+- [ ] ModelRenderer
+  - [ ] Vertex
+  - [ ] Mesh
+  - [ ] Model
+  - [ ] Texture
+- [ ] RayIntersect 
+  - [ ] Same shader with functions to highlight
+- [ ] Scene
+- [ ] Lighting
+- [ ] Engine class
+
