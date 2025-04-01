@@ -7,7 +7,7 @@ project(
 
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
@@ -24,6 +24,14 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 endif()
+
+# Use left-handed coordinate system
+add_compile_definitions(CGLM_FORCE_LEFT_HANDED)
+option(CGLM_SHARED "Shared build" OFF)
+option(CGLM_STATIC "Static build"  ON)
+option(CGLM_USE_C99 "" ON)
+add_subdirectory(lib/cglm/ EXCLUDE_FROM_ALL)
+
 
 set(SHARED_INCLUDE_DIRS lib/sokol lib/sokol/util)
 set(SHARED_MAC_COMPILE_OPTIONS -x objective-c)
@@ -49,7 +57,7 @@ add_shared_library(sokol lib/sokol.c)
 add_executable(engine
     src/main.cpp)
 
-target_link_libraries(engine sokol)
+target_link_libraries(engine sokol cglm_headers)
 
 # Emscripten specific settings
 if (CMAKE_SYSTEM_NAME STREQUAL Emscripten)

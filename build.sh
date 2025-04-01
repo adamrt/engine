@@ -14,7 +14,7 @@ TARGET="$1"
 OPTION=${2:-} # Optional arg to compile only the shader, or not run after building.
 
 # Check if submodules are populated by looking for a key file in each submodule
-if [[ ! -f "lib/sokol/sokol_app.h" ]]; then
+if [[ ! -f "lib/sokol/sokol_app.h" || ! -f "lib/cglm/cglm.h" ]]; then
     echo "Submodules not initialized. Initializing and updating git submodules..."
     git submodule init
     git submodule update
