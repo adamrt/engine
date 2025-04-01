@@ -3,17 +3,13 @@ project(
   Engine
   VERSION     0.1
   DESCRIPTION "Engine for PSX"
-  LANGUAGES   C CXX)
+  LANGUAGES   C)
 
 set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -g3 -ggdb")
 
@@ -55,7 +51,7 @@ add_shared_library(sokol lib/sokol.c)
 
 # Add engine executable
 add_executable(engine
-    src/main.cpp)
+    src/main.c)
 
 target_link_libraries(engine sokol cglm_headers)
 

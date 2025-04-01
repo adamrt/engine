@@ -1,21 +1,21 @@
 @vs vs
-in vec4 position;
-in vec4 color0;
+in vec3 v_position;
+in vec4 v_color;
 
-out vec4 color;
+out vec4 a_color;
 
 void main() {
-    gl_Position = position;
-    color = color0;
+    gl_Position = vec4(v_position, 1.0);
+    a_color = v_color;
 }
 @end
 
 @fs fs
-in vec4 color;
+in vec4 a_color;
 out vec4 frag_color;
 
 void main() {
-    frag_color = color;
+    frag_color = a_color;
 }
 @end
 
