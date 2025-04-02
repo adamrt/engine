@@ -52,7 +52,8 @@ add_shared_library(sokol lib/sokol.c)
 # Add engine executable
 add_executable(engine
     src/main.c
-    src/gpu_impl.c
+    # src/gpu_impl.c
+    src/cpu_impl.c
 )
 
 target_link_libraries(engine sokol cglm_headers)

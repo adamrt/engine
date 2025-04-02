@@ -6,6 +6,8 @@
 #include "sokol_app.h"
 #include "sokol_log.h"
 
+#include "common.h"
+
 void init_impl(void);
 void frame_impl(mat4s proj, mat4s view, mat4s model);
 void cleanup_impl(void);
@@ -58,8 +60,8 @@ sapp_desc sokol_main(int argc, char* argv[]) {
     desc.frame_cb = frame;
     desc.cleanup_cb = cleanup;
     desc.event_cb = event;
-    desc.width = 640;
-    desc.height = 480;
+    desc.width = WIN_WIDTH;
+    desc.height = WIN_HEIGHT;
     desc.window_title = "Engine";
     desc.icon.sokol_default = true;
     desc.logger.func = slog_func;

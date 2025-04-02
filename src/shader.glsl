@@ -33,4 +33,34 @@ void main() {
 }
 @end
 
-@program primary vs fs
+
+/* vertex shader */
+@vs quad_vs
+in vec3 a_position;
+in vec2 a_uv;
+
+out vec2 v_uv;
+
+void main() {
+    gl_Position = vec4(a_position, 1.0);
+    v_uv = a_uv;
+}
+@end
+
+/* fragment shader */
+@fs quad_fs
+layout(binding=0) uniform texture2D u_tex;
+layout(binding=0) uniform sampler u_smp;
+
+in vec2 v_uv;
+
+out vec4 frag_color;
+
+void main() {
+
+    frag_color = texture(sampler2D(u_tex, u_smp), v_uv);
+}
+@end
+
+@program primary vs      fs
+@program quad    quad_vs quad_fs

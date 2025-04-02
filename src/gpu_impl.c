@@ -11,6 +11,7 @@
 #include "shader.glsl.h"
 
 #include "common.h"
+#include "vertices.h"
 
 static struct {
     sg_pipeline pip;
