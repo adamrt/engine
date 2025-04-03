@@ -19,7 +19,7 @@ static struct {
     sg_pass_action pass_action;
 } state;
 
-float aspect_impl(void) {
+float camera_aspect_impl(void) {
     return sapp_width() / (float)sapp_height();
 }
 

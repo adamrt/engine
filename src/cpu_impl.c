@@ -57,7 +57,7 @@ static struct {
     int num_faces;
 } state;
 
-float aspect_impl(void) {
+float camera_aspect_impl(void) {
     return FB_WIDTH / (float)FB_HEIGHT;
 }
 

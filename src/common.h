@@ -15,6 +15,11 @@ typedef struct {
     vec4s color;
 } vertex_t;
 
+void camera_init(void);
+void camera_toggle(void);
+mat4s camera_proj(void);
+mat4s camera_view(void);
+
 void clock_init(void);
 void clock_frame(void);
 float clock_fps(void);

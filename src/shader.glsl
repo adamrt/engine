@@ -5,6 +5,10 @@
 @ctype vec2 vec2s
 
 @vs vs
+// This was required to fix the clipspace, when we
+// couldn't see the cube when using ortho projection.
+@msl_options fixup_clipspace
+
 // Uniforms
 layout(binding=0) uniform vs_primary_params {
     mat4 u_proj;
