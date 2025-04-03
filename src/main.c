@@ -22,14 +22,17 @@ static struct {
     vec3s scale;
 } state;
 
-void init(void) {
-    clock_init();
-    camera_init();
-    gfx_init();
-
+static void state_init(void) {
     state.translation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
     state.rotation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
     state.scale = (vec3s) { { 1.0f, 1.0f, 1.0f } };
+}
+
+static void init(void) {
+    clock_init();
+    camera_init();
+    state_init();
+    gfx_init();
 }
 
 static mat4s model_matrix(void) {
@@ -42,7 +45,7 @@ static mat4s model_matrix(void) {
     return model;
 }
 
-void frame(void) {
+static void frame(void) {
     clock_update();
 
     state.rotation.y += 0.01f;
@@ -54,7 +57,7 @@ void frame(void) {
     sapp_set_window_title(title);
 }
 
-void event(const sapp_event* event) {
+static void event(const sapp_event* event) {
     if (event->type == SAPP_EVENTTYPE_KEY_DOWN) {
         switch (event->key_code) {
         case SAPP_KEYCODE_ESCAPE:
@@ -69,7 +72,7 @@ void event(const sapp_event* event) {
     }
 }
 
-void cleanup(void) {
+static void cleanup(void) {
     gfx_cleanup();
 }
 
