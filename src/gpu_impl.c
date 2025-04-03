@@ -77,6 +77,8 @@ void frame_impl(mat4s proj, mat4s view, mat4s model) {
 }
 
 void cleanup_impl(void) {
+    sg_destroy_pipeline(state.pip);
+    sg_destroy_buffer(state.bind.vertex_buffers[0]);
     sg_shutdown();
 }
 

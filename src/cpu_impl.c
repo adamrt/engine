@@ -57,7 +57,17 @@ static struct {
     int num_faces;
 } state;
 
-void _init_texture(void) {
+float aspect_impl(void) {
+    return FB_WIDTH / (float)FB_HEIGHT;
+}
+
+void init_impl(void) {
+    sg_desc desc = { 0 };
+    desc.environment = sglue_environment();
+    desc.logger.func = slog_func;
+    sg_setup(&desc);
+
+    // Initialize framebuffer/texture
     sg_image_desc img_desc = { 0 };
     img_desc.width = FB_WIDTH;
     img_desc.height = FB_HEIGHT;
@@ -72,9 +82,8 @@ void _init_texture(void) {
     smp_desc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
     smp_desc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
     state.fb_sampler = sg_make_sampler(&smp_desc);
-}
 
-void _init_fullscreen_quad(void) {
+    // Initialize fullscreen quad
     // clang-format off
     float quad_vertices[] = {
         // position     uv
@@ -92,9 +101,7 @@ void _init_fullscreen_quad(void) {
     vbuf_desc.data = SG_RANGE(quad_vertices);
     vbuf_desc.label = "quad-vertices";
     state.bind.vertex_buffers[0] = sg_make_buffer(&vbuf_desc);
-}
 
-void _init_pipeline(void) {
     sg_shader shd = sg_make_shader(quad_shader_desc(sg_query_backend()));
     sg_pipeline_desc pip_desc = { 0 };
     pip_desc.shader = shd;
@@ -110,33 +117,19 @@ void _init_pipeline(void) {
     // Clear to black
     state.pass_action.colors[0].load_action = SG_LOADACTION_CLEAR;
     state.pass_action.colors[0].clear_value = (sg_color) { 0.0f, 0.0f, 0.0f, 1.0f };
-}
 
-float aspect_impl(void) {
-    return FB_WIDTH / (float)FB_HEIGHT;
-}
+    sg_pass_action action = { 0 };
+    action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    action.colors[0].clear_value = (sg_color) { 0.0f, 0.0f, 0.0f, 1.0f };
+    state.pass_action = action;
 
-void init_impl(void) {
-    sg_desc desc = { 0 };
-    desc.environment = sglue_environment();
-    desc.logger.func = slog_func;
-    sg_setup(&desc);
-
-    _init_texture();
-    _init_fullscreen_quad();
-    _init_pipeline();
-
+    // Setup Colors
     color_black = rgb(0, 0, 0, 1);
     color_white = rgb(255, 255, 255, 1);
     color_red = rgb(255, 0, 0, 1);
     color_green = rgb(0, 255, 0, 1);
     color_blue = rgb(0, 0, 255, 1);
     color_transparent = rgb(0, 0, 0, 0);
-
-    sg_pass_action action = { 0 };
-    action.colors[0].load_action = SG_LOADACTION_CLEAR;
-    action.colors[0].clear_value = (sg_color) { 0.0f, 0.0f, 0.0f, 1.0f };
-    state.pass_action = action;
 }
 
 void frame_impl(mat4s proj, mat4s view, mat4s model) {
@@ -229,6 +222,10 @@ void frame_impl(mat4s proj, mat4s view, mat4s model) {
 }
 
 void cleanup_impl(void) {
+    sg_destroy_image(state.fb_image);
+    sg_destroy_sampler(state.fb_sampler);
+    sg_destroy_pipeline(state.pip);
+    sg_destroy_buffer(state.bind.vertex_buffers[0]);
     sg_shutdown();
 }
 
