@@ -21,6 +21,12 @@ uint32_t color_green;
 uint32_t color_blue;
 uint32_t color_transparent;
 
+typedef struct {
+    vec4s a, b, c;
+    vec4s color_a, color_b, color_c;
+    float avg_z;
+} face_t;
+
 #define swap(type, a, b) \
     do {                 \
         type _tmp = (a); \
@@ -31,18 +37,24 @@ uint32_t color_transparent;
 static void fb_clear(void);
 static void fb_draw_pixel(int32_t x, int32_t y, uint32_t color);
 static void fb_draw_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color);
+static void fb_draw_triangle_gouraud(vec4s v0, vec4s v1, vec4s v3, vec4s ca, vec4s cb, vec4s cc);
 static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+static int compare_faces_desc(const void* a, const void* b);
 
 static struct {
+    uint32_t framebuffer[FB_SIZE];
+
     sg_pipeline pip;
     sg_bindings bind;
     sg_pass_action pass_action;
+
+    // Fullscreen quad
     sg_image fb_image;
     sg_sampler fb_sampler;
 
-    uint32_t framebuffer[FB_SIZE];
-    vec4s verts_to_render[256];
-    int num_verts_to_render;
+    // Renderables
+    face_t faces_to_render[256];
+    int num_faces;
 } state;
 
 void _init_texture(void) {
@@ -110,8 +122,6 @@ void init_impl(void) {
     desc.logger.func = slog_func;
     sg_setup(&desc);
 
-    state.num_verts_to_render = 0;
-
     _init_texture();
     _init_fullscreen_quad();
     _init_pipeline();
@@ -130,43 +140,67 @@ void init_impl(void) {
 }
 
 void frame_impl(mat4s proj, mat4s view, mat4s model) {
+    state.num_faces = 0;
     fb_clear();
 
     mat4s mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
 
     int num_vertices = 36;
 
-    for (int i = 0; i < num_vertices; i++) {
-        vertex_t vert = vertices[i];
-        vec4s v = (vec4s) { { vert.position.x, vert.position.y, vert.position.z, 1.0f } };
+    for (int i = 0; i <= num_vertices - 3; i += 3) {
+        vertex_t v0 = vertices[i];
+        vertex_t v1 = vertices[i + 1];
+        vertex_t v2 = vertices[i + 2];
 
-        v = glms_mat4_mulv(mvp, v);
-        if (v.w != 0.0f) {
-            v.x /= v.w;
-            v.y /= v.w;
-            v.z /= v.w;
+        vec4s a = (vec4s) { { v0.position.x, v0.position.y, v0.position.z, 1.0f } };
+        vec4s b = (vec4s) { { v1.position.x, v1.position.y, v1.position.z, 1.0f } };
+        vec4s c = (vec4s) { { v2.position.x, v2.position.y, v2.position.z, 1.0f } };
+
+        a = glms_mat4_mulv(mvp, a);
+        b = glms_mat4_mulv(mvp, b);
+        c = glms_mat4_mulv(mvp, c);
+
+        if (a.w != 0.0f) {
+            a.x /= a.w;
+            a.y /= a.w;
+            a.z /= a.w;
+        }
+        if (b.w != 0.0f) {
+            b.x /= b.w;
+            b.y /= b.w;
+            b.z /= b.w;
+        }
+        if (c.w != 0.0f) {
+            c.x /= c.w;
+            c.y /= c.w;
+            c.z /= c.w;
         }
 
-        v.x = (v.x + 1.0f) * 0.5f * FB_WIDTH;
-        v.y = (1.0f - v.y) * 0.5f * FB_HEIGHT;
+        a.x = (a.x + 1.0f) * 0.5f * FB_WIDTH;
+        a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
+        b.x = (b.x + 1.0f) * 0.5f * FB_WIDTH;
+        b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
+        c.x = (c.x + 1.0f) * 0.5f * FB_WIDTH;
+        c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
 
-        state.verts_to_render[state.num_verts_to_render++] = v;
+        face_t face = {
+            .a = a,
+            .b = b,
+            .c = c,
+            .color_a = v0.color,
+            .color_b = v1.color,
+            .color_c = v2.color,
+            .avg_z = (face.a.z + face.b.z + face.c.z) / 3.0f,
+        };
+        state.faces_to_render[state.num_faces++] = face;
     }
 
-    fb_draw_line(255, 0, 0, 240, color_green);
-    fb_draw_line(0, 0, 255, 240, color_red);
+    qsort(state.faces_to_render, state.num_faces, sizeof(face_t), compare_faces_desc);
 
-    for (int i = 0; i < state.num_verts_to_render; i += 3) {
-        vec4s a = state.verts_to_render[i];
-        vec4s b = state.verts_to_render[i + 1];
-        vec4s c = state.verts_to_render[i + 2];
-
-        fb_draw_line(a.x, a.y, b.x, b.y, color_white);
-        fb_draw_line(b.x, b.y, c.x, c.y, color_white);
-        fb_draw_line(c.x, c.y, a.x, a.y, color_white);
+    // Render
+    for (int i = 0; i < state.num_faces; i++) {
+        fb_draw_triangle_gouraud(state.faces_to_render[i].a, state.faces_to_render[i].b, state.faces_to_render[i].c, state.faces_to_render[i].color_a, state.faces_to_render[i].color_b, state.faces_to_render[i].color_c);
     }
-
-    state.num_verts_to_render = 0;
 
     for (int y = 20; y < 50; y++) {
         for (int x = 20; x < 80; x++) {
@@ -245,8 +279,60 @@ static void fb_draw_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_
     }
 }
 
+static void fb_draw_triangle_gouraud(vec4s v0, vec4s v1, vec4s v3, vec4s ca, vec4s cb, vec4s cc) {
+    // Bounding box
+    int min_x = (int)fmaxf(0.0f, floorf(fminf(v0.x, fminf(v1.x, v3.x))));
+    int max_x = (int)fminf(FB_WIDTH - 1, ceilf(fmaxf(v0.x, fmaxf(v1.x, v3.x))));
+    int min_y = (int)fmaxf(0.0f, floorf(fminf(v0.y, fminf(v1.y, v3.y))));
+    int max_y = (int)fminf(FB_HEIGHT - 1, ceilf(fmaxf(v0.y, fmaxf(v1.y, v3.y))));
+
+    float dy13 = v1.y - v3.y;
+    float dx03 = v0.x - v3.x;
+    float dx31 = v3.x - v1.x;
+    float dy03 = v0.y - v3.y;
+    float dy30 = v3.y - v0.y;
+
+    // Precompute edge functions
+    float denom = (dy13) * (dx03) + (dx31) * (dy03);
+    if (denom == 0.0f)
+        return; // Degenerate
+
+    for (int y = min_y; y <= max_y; y++) {
+        for (int x = min_x; x <= max_x; x++) {
+            float px = (float)x + 0.5f;
+            float py = (float)y + 0.5f;
+
+            // Barycentric coordinates
+            float w1 = ((dy13) * (px - v3.x) + (dx31) * (py - v3.y)) / denom;
+            float w2 = ((dy30) * (px - v3.x) + (dx03) * (py - v3.y)) / denom;
+            float w3 = 1.0f - w1 - w2;
+
+            // Inside triangle?
+            if (w1 < 0 || w2 < 0 || w3 < 0)
+                continue;
+
+            // Interpolated color
+            float r = ca.r * w1 + cb.r * w2 + cc.r * w3;
+            float g = ca.g * w1 + cb.g * w2 + cc.g * w3;
+            float b = ca.b * w1 + cb.b * w2 + cc.b * w3;
+
+            fb_draw_pixel(x, y, rgb((uint8_t)(r * 255), (uint8_t)(g * 255), (uint8_t)(b * 255), 255));
+        }
+    }
+}
+
 static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | ((uint32_t)r);
+}
+
+static int compare_faces_desc(const void* a, const void* b) {
+    const face_t* fa = (const face_t*)a;
+    const face_t* fb = (const face_t*)b;
+    if (fa->avg_z < fb->avg_z)
+        return 1;
+    if (fa->avg_z > fb->avg_z)
+        return -1;
+    return 0;
 }
 
 #endif // CPU_IMPL_H_

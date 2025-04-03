@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "cglm/types-struct.h"
 
 #define FB_WIDTH   (256 * 3)
@@ -12,3 +14,7 @@ typedef struct {
     vec3s position;
     vec4s color;
 } vertex_t;
+
+void clock_init(void);
+void clock_frame(void);
+float clock_fps(void);
