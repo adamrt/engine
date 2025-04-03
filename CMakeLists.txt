@@ -54,6 +54,7 @@ add_executable(engine
     src/main.c
     src/camera.c
     src/clock.c
+    src/model.c
     # src/gpu_impl.c
     src/cpu_impl.c
 )

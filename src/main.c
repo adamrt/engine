@@ -11,21 +11,22 @@
 #include "camera.h"
 #include "clock.h"
 #include "common.h"
+#include "model.h"
 
 void gfx_init(void);
 void gfx_frame(mat4s proj, mat4s view, mat4s model);
 void gfx_cleanup(void);
 
 static struct {
-    vec3s translation;
-    vec3s rotation;
-    vec3s scale;
+    transform_t transform;
 } state;
 
 static void state_init(void) {
-    state.translation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
-    state.rotation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
-    state.scale = (vec3s) { { 1.0f, 1.0f, 1.0f } };
+    state.transform = (transform_t) {
+        .translation = { { 0.0f, 0.0f, 0.0f } },
+        .rotation = { { 0.0f, 0.0f, 0.0f } },
+        .scale = { { 1.0f, 1.0f, 1.0f } },
+    };
 }
 
 static void init(void) {
@@ -35,23 +36,19 @@ static void init(void) {
     gfx_init();
 }
 
-static mat4s model_matrix(void) {
-    mat4s model = glms_mat4_identity();
-    model = glms_scale(model, state.scale);
-    model = glms_rotate_z(model, state.rotation.z);
-    model = glms_rotate_y(model, state.rotation.y);
-    model = glms_rotate_x(model, state.rotation.x);
-    model = glms_translate(model, state.translation);
-    return model;
-}
-
 static void frame(void) {
     clock_update();
 
-    state.rotation.y += 0.01f;
+    // Update scene
+    state.transform.rotation.y += 0.01f;
 
-    gfx_frame(camera_proj(), camera_view(), model_matrix());
+    // Render frame
+    mat4s proj = camera_proj();
+    mat4s view = camera_view();
+    mat4s model = model_matrix(state.transform);
+    gfx_frame(proj, view, model);
 
+    // Update FPS
     static char title[64];
     snprintf(title, sizeof(title), "Engine - %.2f FPS", clock_fps());
     sapp_set_window_title(title);
