@@ -18,11 +18,11 @@ static struct {
     sg_pass_action pass_action;
 } state;
 
-float camera_aspect_impl(void) {
+float gfx_aspect(void) {
     return sapp_width() / (float)sapp_height();
 }
 
-void init_impl(void) {
+void gfx_init(void) {
     sg_desc desc = { 0 };
     desc.environment = sglue_environment();
     desc.logger.func = slog_func;
@@ -51,7 +51,7 @@ void init_impl(void) {
     state.pass_action = action;
 }
 
-void frame_impl(mat4s proj, mat4s view, mat4s model) {
+void gfx_frame(mat4s proj, mat4s view, mat4s model) {
     sg_pass pass = { 0 };
     pass.action = state.pass_action;
     pass.swapchain = sglue_swapchain();
@@ -75,7 +75,7 @@ void frame_impl(mat4s proj, mat4s view, mat4s model) {
     sg_commit();
 }
 
-void cleanup_impl(void) {
+void gfx_cleanup(void) {
     sg_destroy_pipeline(state.pip);
     sg_destroy_buffer(state.bind.vertex_buffers[0]);
     sg_shutdown();

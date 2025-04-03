@@ -12,22 +12,34 @@
 #include "clock.h"
 #include "common.h"
 
-void init_impl(void);
-void frame_impl(mat4s proj, mat4s view, mat4s model);
-void cleanup_impl(void);
+void gfx_init(void);
+void gfx_frame(mat4s proj, mat4s view, mat4s model);
+void gfx_cleanup(void);
 
 static struct {
-    vec3s translation, rotation, scale;
+    vec3s translation;
+    vec3s rotation;
+    vec3s scale;
 } state;
 
 void init(void) {
     clock_init();
     camera_init();
-    init_impl();
+    gfx_init();
 
     state.translation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
     state.rotation = (vec3s) { { 0.0f, 0.0f, 0.0f } };
     state.scale = (vec3s) { { 1.0f, 1.0f, 1.0f } };
+}
+
+static mat4s model_matrix(void) {
+    mat4s model = glms_mat4_identity();
+    model = glms_scale(model, state.scale);
+    model = glms_rotate_z(model, state.rotation.z);
+    model = glms_rotate_y(model, state.rotation.y);
+    model = glms_rotate_x(model, state.rotation.x);
+    model = glms_translate(model, state.translation);
+    return model;
 }
 
 void frame(void) {
@@ -35,14 +47,7 @@ void frame(void) {
 
     state.rotation.y += 0.01f;
 
-    mat4s model = glms_mat4_identity();
-    model = glms_scale(model, state.scale);
-    model = glms_rotate_z(model, state.rotation.z);
-    model = glms_rotate_y(model, state.rotation.y);
-    model = glms_rotate_x(model, state.rotation.x);
-    model = glms_translate(model, state.translation);
-
-    frame_impl(camera_proj(), camera_view(), model);
+    gfx_frame(camera_proj(), camera_view(), model_matrix());
 
     static char title[64];
     snprintf(title, sizeof(title), "Engine - %.2f FPS", clock_fps());
@@ -64,14 +69,15 @@ void event(const sapp_event* event) {
     }
 }
 
-void cleanup(void) { cleanup_impl(); }
+void cleanup(void) {
+    gfx_cleanup();
+}
 
 sapp_desc sokol_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
 
     sapp_desc desc = { 0 };
-
     desc.init_cb = init;
     desc.frame_cb = frame;
     desc.cleanup_cb = cleanup;

@@ -19,7 +19,7 @@ static struct {
 } camera;
 
 // Linked in the cpu/gpu_impl.c files.
-float camera_aspect_impl(void);
+float gfx_aspect(void);
 
 void camera_init(void) {
     camera.position = (vec3s) { { 0.0f, 0.0f, -3.0f } };
@@ -27,7 +27,7 @@ void camera_init(void) {
     camera.world_up = (vec3s) { { 0.0f, -1.0f, 0.0f } }; // Intentionally inverted to flip screen.
 
     camera.view = glms_lookat(camera.position, camera.target, camera.world_up);
-    camera.persp_proj = glms_perspective(45.0f, camera_aspect_impl(), 0.1f, 100.0f);
+    camera.persp_proj = glms_perspective(45.0f, gfx_aspect(), 0.1f, 100.0f);
     camera.ortho_proj = glms_ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
     camera.projection = PROJ_PERSPECTIVE;
 }

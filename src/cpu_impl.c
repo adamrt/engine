@@ -57,11 +57,11 @@ static struct {
     int num_faces;
 } state;
 
-float camera_aspect_impl(void) {
+float gfx_aspect(void) {
     return FB_WIDTH / (float)FB_HEIGHT;
 }
 
-void init_impl(void) {
+void gfx_init(void) {
     sg_desc desc = { 0 };
     desc.environment = sglue_environment();
     desc.logger.func = slog_func;
@@ -132,7 +132,7 @@ void init_impl(void) {
     color_transparent = rgb(0, 0, 0, 0);
 }
 
-void frame_impl(mat4s proj, mat4s view, mat4s model) {
+void gfx_frame(mat4s proj, mat4s view, mat4s model) {
     state.num_faces = 0;
     fb_clear();
 
@@ -221,7 +221,7 @@ void frame_impl(mat4s proj, mat4s view, mat4s model) {
     sg_commit();
 }
 
-void cleanup_impl(void) {
+void gfx_cleanup(void) {
     sg_destroy_image(state.fb_image);
     sg_destroy_sampler(state.fb_sampler);
     sg_destroy_pipeline(state.pip);
