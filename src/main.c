@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "cglm/struct/affine.h"
 #include "cglm/struct/mat4.h"
 #include "cglm/types-struct.h"
@@ -6,8 +8,9 @@
 #include "sokol_log.h"
 #include "sokol_time.h"
 
+#include "camera.h"
+#include "clock.h"
 #include "common.h"
-#include <stdio.h>
 
 void init_impl(void);
 void frame_impl(mat4s proj, mat4s view, mat4s model);
@@ -28,7 +31,7 @@ void init(void) {
 }
 
 void frame(void) {
-    clock_frame();
+    clock_update();
 
     state.rotation.y += 0.01f;
 

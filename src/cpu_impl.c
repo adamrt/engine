@@ -12,7 +12,7 @@
 #include "shader.glsl.h"
 
 #include "common.h"
-#include "vertices.h"
+#include "vertex.h"
 
 uint32_t color_black;
 uint32_t color_white;

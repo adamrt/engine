@@ -1,7 +1,12 @@
 #ifndef VERTICES_H_
 #define VERTICES_H_
 
-#include "common.h"
+#include "cglm/types-struct.h"
+
+typedef struct {
+    vec3s position;
+    vec4s color;
+} vertex_t;
 
 // clang-format off
 vertex_t vertices[] = {

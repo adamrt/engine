@@ -1,7 +1,6 @@
-#include "common.h"
+#include "camera.h"
 
 #include "cglm/struct/cam.h"
-#include "sokol_time.h"
 
 typedef enum {
     PROJ_PERSPECTIVE,
@@ -19,6 +18,7 @@ static struct {
     mat4s ortho_proj;
 } camera;
 
+// Linked in the cpu/gpu_impl.c files.
 float camera_aspect_impl(void);
 
 void camera_init(void) {
@@ -42,34 +42,4 @@ mat4s camera_proj(void) {
 
 mat4s camera_view(void) {
     return camera.view;
-}
-
-static struct {
-    uint64_t last_time;
-    float fps;
-    int frame_count;
-    float elapsed_sec;
-} clock;
-
-void clock_init(void) {
-    stm_setup();
-}
-
-void clock_frame(void) {
-    uint64_t now = stm_now();
-    float dt = (float)stm_sec(stm_diff(now, clock.last_time));
-    clock.last_time = now;
-
-    clock.elapsed_sec += dt;
-    clock.frame_count++;
-
-    if (clock.elapsed_sec >= 1.0f) {
-        clock.fps = (float)clock.frame_count / clock.elapsed_sec;
-        clock.frame_count = 0;
-        clock.elapsed_sec = 0.0f;
-    }
-}
-
-float clock_fps(void) {
-    return clock.fps;
 }

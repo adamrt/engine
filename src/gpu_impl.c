@@ -10,8 +10,7 @@
 
 #include "shader.glsl.h"
 
-#include "common.h"
-#include "vertices.h"
+#include "vertex.h"
 
 static struct {
     sg_pipeline pip;
