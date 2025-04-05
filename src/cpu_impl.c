@@ -39,7 +39,7 @@ static void fb_draw_pixel(int32_t x, int32_t y, uint32_t color);
 static void fb_draw_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t color);
 static void fb_draw_triangle_gouraud(vec4s v0, vec4s v1, vec4s v3, vec4s ca, vec4s cb, vec4s cc);
 static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-static int compare_faces_desc(const void* a, const void* b);
+static int sort_faces(const void* a, const void* b);
 
 static struct {
     uint32_t framebuffer[FB_SIZE];
@@ -153,6 +153,8 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
         b = glms_mat4_mulv(mvp, b);
         c = glms_mat4_mulv(mvp, c);
 
+        // Perspective Divide. Works with ortho as well since W is always 1.0.
+        // FIXME: Remove for ortho performance since its a essentially a no-op.
         if (a.w != 0.0f) {
             a.x /= a.w;
             a.y /= a.w;
@@ -169,12 +171,14 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
             c.z /= c.w;
         }
 
-        a.x = (a.x + 1.0f) * 0.5f * FB_WIDTH;
-        a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
-        b.x = (b.x + 1.0f) * 0.5f * FB_WIDTH;
-        b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
-        c.x = (c.x + 1.0f) * 0.5f * FB_WIDTH;
-        c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
+        // Convert from NDC [-1, 1] to framebuffer coordinates [0, FB_WIDTH/HEIGHT]
+        // +1 is for [-1, 1] to [0, 2] and *0.5f is for [0, 2] to [0, 1].
+        a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
+        a.y = (1.0f + a.y) * 0.5f * FB_HEIGHT;
+        b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
+        b.y = (1.0f + b.y) * 0.5f * FB_HEIGHT;
+        c.x = (1.0f + c.x) * 0.5f * FB_WIDTH;
+        c.y = (1.0f + c.y) * 0.5f * FB_HEIGHT;
 
         face_t face = {
             .a = a,
@@ -188,13 +192,15 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
         state.faces_to_render[state.num_faces++] = face;
     }
 
-    qsort(state.faces_to_render, state.num_faces, sizeof(face_t), compare_faces_desc);
+    // Sort back to front for painters algorithm.
+    qsort(state.faces_to_render, state.num_faces, sizeof(face_t), sort_faces);
 
-    // Render
+    // Draw triangles
     for (int i = 0; i < state.num_faces; i++) {
         fb_draw_triangle_gouraud(state.faces_to_render[i].a, state.faces_to_render[i].b, state.faces_to_render[i].c, state.faces_to_render[i].color_a, state.faces_to_render[i].color_b, state.faces_to_render[i].color_c);
     }
 
+    // Draw debug square for orientation. Remove later.
     for (int y = 20; y < 50; y++) {
         for (int x = 20; x < 80; x++) {
             fb_draw_pixel(x, y, color_blue);
@@ -202,12 +208,11 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
     }
 
     // Upload CPU buffer -> GPU texture
-    {
-        sg_image_data img_data = { 0 };
-        img_data.subimage[0][0] = SG_RANGE(state.framebuffer);
-        sg_update_image(state.fb_image, &img_data);
-    }
+    sg_image_data img_data = { 0 };
+    img_data.subimage[0][0] = SG_RANGE(state.framebuffer);
+    sg_update_image(state.fb_image, &img_data);
 
+    // Render
     sg_pass pass = { 0 };
     pass.action = state.pass_action;
     pass.swapchain = sglue_swapchain();
@@ -240,7 +245,7 @@ static void fb_draw_pixel(int32_t x, int32_t y, uint32_t color) {
     if (x < 0 || x >= FB_WIDTH || y < 0 || y >= FB_HEIGHT) {
         return;
     }
-    state.framebuffer[y * FB_WIDTH + x] = color;
+    state.framebuffer[(FB_HEIGHT - y - 1) * FB_WIDTH + x] = color;
 }
 
 // draw_line uses the Bresenham's line algorithm
@@ -322,7 +327,8 @@ static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | ((uint32_t)r);
 }
 
-static int compare_faces_desc(const void* a, const void* b) {
+// Painters algo
+static int sort_faces_back_to_front(const void* a, const void* b) {
     const face_t* fa = (const face_t*)a;
     const face_t* fb = (const face_t*)b;
     if (fa->avg_z < fb->avg_z)
