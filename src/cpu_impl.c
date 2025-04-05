@@ -16,6 +16,7 @@
 #include "scene.h"
 #include "vertex.h"
 
+// Face represents a transformed triangle that can be ordered.
 typedef struct {
     vec4s a, b, c;
     vec4s color_a, color_b, color_c;

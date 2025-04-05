@@ -2,7 +2,6 @@
 #define RENDERABLE_H_
 
 #include "cglm/types-struct.h"
-#include "vertex.h"
 #include <stdint.h>
 
 #define RENDERABLE_MAX_MESHES (8)
@@ -25,12 +24,16 @@ typedef struct {
 } line_t;
 
 typedef struct {
+    vec3s position;
+    vec4s color;
+} vertex_t;
+
+typedef struct {
     vertex_t a, b, c;
 } triangle_t;
 
 typedef struct {
-    vec3s a, b, c, d;
-    vec4s color_a, color_b, color_c, color_d;
+    vertex_t a, b, c, d;
 } quad_t;
 
 typedef struct {
