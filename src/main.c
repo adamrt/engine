@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include "cglm/struct/affine.h"
-#include "cglm/struct/mat4.h"
 #include "cglm/types-struct.h"
 
 #include "sokol_app.h"
@@ -11,10 +9,10 @@
 #include "camera.h"
 #include "clock.h"
 #include "common.h"
-#include "model.h"
+#include "scene.h"
 
 void gfx_init(void);
-void gfx_frame(mat4s proj, mat4s view, mat4s model);
+void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene);
 void gfx_cleanup(void);
 
 static struct {
@@ -34,6 +32,9 @@ static void init(void) {
     camera_init();
     state_init();
     gfx_init();
+    scene_add_axis();
+    renderable_t cube = renderable_cube();
+    scene_add_renderable(cube);
 }
 
 static void frame(void) {
@@ -45,8 +46,9 @@ static void frame(void) {
     // Render frame
     mat4s proj = camera_proj();
     mat4s view = camera_view();
-    mat4s model = model_matrix(state.transform);
-    gfx_frame(proj, view, model);
+    mat4s model = renderable_model_matrix(state.transform);
+    scene_t* scene = scene_get();
+    gfx_frame(proj, view, model, scene);
 
     // Update FPS
     static char title[64];

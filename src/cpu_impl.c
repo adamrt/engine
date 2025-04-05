@@ -4,6 +4,7 @@
 #include "cglm/struct/mat4.h"
 #include "cglm/types-struct.h"
 
+#include "renderable.h"
 #include "sokol_app.h"
 #include "sokol_gfx.h"
 #include "sokol_glue.h"
@@ -12,14 +13,8 @@
 #include "shader.glsl.h"
 
 #include "common.h"
+#include "scene.h"
 #include "vertex.h"
-
-uint32_t color_black;
-uint32_t color_white;
-uint32_t color_red;
-uint32_t color_green;
-uint32_t color_blue;
-uint32_t color_transparent;
 
 typedef struct {
     vec4s a, b, c;
@@ -122,21 +117,13 @@ void gfx_init(void) {
     action.colors[0].load_action = SG_LOADACTION_CLEAR;
     action.colors[0].clear_value = (sg_color) { 0.0f, 0.0f, 0.0f, 1.0f };
     state.pass_action = action;
-
-    // Setup Colors
-    color_black = rgb(0, 0, 0, 1);
-    color_white = rgb(255, 255, 255, 1);
-    color_red = rgb(255, 0, 0, 1);
-    color_green = rgb(0, 255, 0, 1);
-    color_blue = rgb(0, 0, 255, 1);
-    color_transparent = rgb(0, 0, 0, 0);
 }
 
-void gfx_frame(mat4s proj, mat4s view, mat4s model) {
+void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
     state.num_faces = 0;
     fb_clear();
 
-    mat4s mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
+    mat4s vertices_mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
 
     int num_vertices = 36;
 
@@ -149,9 +136,9 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
         vec4s b = (vec4s) { { v1.position.x, v1.position.y, v1.position.z, 1.0f } };
         vec4s c = (vec4s) { { v2.position.x, v2.position.y, v2.position.z, 1.0f } };
 
-        a = glms_mat4_mulv(mvp, a);
-        b = glms_mat4_mulv(mvp, b);
-        c = glms_mat4_mulv(mvp, c);
+        a = glms_mat4_mulv(vertices_mvp, a);
+        b = glms_mat4_mulv(vertices_mvp, b);
+        c = glms_mat4_mulv(vertices_mvp, c);
 
         // Perspective Divide. Works with ortho as well since W is always 1.0.
         // FIXME: Remove for ortho performance since its a essentially a no-op.
@@ -198,6 +185,41 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
     // Draw triangles
     for (int i = 0; i < state.num_faces; i++) {
         fb_draw_triangle_gouraud(state.faces_to_render[i].a, state.faces_to_render[i].b, state.faces_to_render[i].c, state.faces_to_render[i].color_a, state.faces_to_render[i].color_b, state.faces_to_render[i].color_c);
+    }
+
+    for (int i = 0; i < scene->num_renderables; i++) {
+        renderable_t* renderable = &scene->renderables[i];
+        mat4s renderable_model = renderable_model_matrix(renderable->transform);
+        mat4s renderable_mvp = glms_mat4_mul(proj, glms_mat4_mul(view, renderable_model));
+
+        if (renderable->type == RENDERABLE_TYPE_LINE) {
+            for (int j = 0; j < renderable->num_lines; j++) {
+                line_t line = renderable->lines[j];
+                vec4s a = (vec4s) { { line.start.x, line.start.y, line.start.z, 1.0f } };
+                vec4s b = (vec4s) { { line.end.x, line.end.y, line.end.z, 1.0f } };
+
+                a = glms_mat4_mulv(renderable_mvp, a);
+                b = glms_mat4_mulv(renderable_mvp, b);
+
+                if (a.w != 0.0f) {
+                    a.x /= a.w;
+                    a.y /= a.w;
+                    a.z /= a.w;
+                }
+                if (b.w != 0.0f) {
+                    b.x /= b.w;
+                    b.y /= b.w;
+                    b.z /= b.w;
+                }
+
+                a.x = (a.x + 1.0f) * 0.5f * FB_WIDTH;
+                a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
+                b.x = (b.x + 1.0f) * 0.5f * FB_WIDTH;
+                b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
+
+                fb_draw_line(a.x, a.y, b.x, b.y, line.color);
+            }
+        }
     }
 
     // Draw debug square for orientation. Remove later.
@@ -328,7 +350,7 @@ static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 }
 
 // Painters algo
-static int sort_faces_back_to_front(const void* a, const void* b) {
+static int sort_faces(const void* a, const void* b) {
     const face_t* fa = (const face_t*)a;
     const face_t* fb = (const face_t*)b;
     if (fa->avg_z < fb->avg_z)
