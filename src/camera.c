@@ -2,6 +2,8 @@
 
 #include "cglm/struct/cam.h"
 
+#include "common.h"
+
 typedef enum {
     PROJ_PERSPECTIVE,
     PROJ_ORTHOGRAPHIC,
@@ -28,7 +30,9 @@ void camera_init(void) {
 
     camera.view = glms_lookat(camera.position, camera.target, camera.world_up);
     camera.persp_proj = glms_perspective(45.0f, gfx_aspect(), 0.1f, 100.0f);
-    camera.ortho_proj = glms_ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+    float width = FB_WIDTH;
+    float height = FB_HEIGHT;
+    camera.ortho_proj = glms_ortho(-width, width, -height, height, 0.1f, 100.0f);
     camera.projection = PROJ_PERSPECTIVE;
 }
 
