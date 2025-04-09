@@ -8,9 +8,9 @@
 mat4s renderable_model_matrix(transform_t transform) {
     mat4s model = glms_mat4_identity();
     model = glms_scale(model, transform.scale);
-    model = glms_rotate_z(model, transform.rotation.z);
-    model = glms_rotate_y(model, transform.rotation.y);
     model = glms_rotate_x(model, transform.rotation.x);
+    model = glms_rotate_y(model, transform.rotation.y);
+    model = glms_rotate_z(model, transform.rotation.z);
     model = glms_translate(model, transform.translation);
     return model;
 }
@@ -19,7 +19,8 @@ renderable_t renderable_cube(void) {
     renderable_t renderable = { 0 };
     renderable.type = RENDERABLE_TYPE_MESH;
 
-    for (int i = 0; i < 36; i += 3) {
+    int num_vertices = 3981;
+    for (int i = 0; i < num_vertices; i += 3) {
         vertex_t v0 = vertices[i];
         vertex_t v1 = vertices[i + 1];
         vertex_t v2 = vertices[i + 2];

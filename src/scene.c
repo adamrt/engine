@@ -16,9 +16,9 @@ void scene_add_renderable(renderable_t renderable) {
 
 void scene_add_axis(void) {
     vec3s origin = { { 0.0f, 0.0f, 0.0f } };
-    vec3s x_axis = { { 0.2f, 0.0f, 0.0f } };
-    vec3s y_axis = { { 0.0f, -0.2f, 0.0f } };
-    vec3s z_axis = { { 0.0f, 0.0f, 0.2f } };
+    vec3s x_axis = { { 250.0f, 0.0f, 0.0f } };
+    vec3s y_axis = { { 0.0f, 250.0f, 0.0f } };
+    vec3s z_axis = { { 0.0f, 0.0f, 250.0f } };
 
     renderable_t renderable = { 0 };
     renderable.type = RENDERABLE_TYPE_LINE;

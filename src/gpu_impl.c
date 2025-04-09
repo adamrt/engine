@@ -64,7 +64,7 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model) {
 
     sg_begin_pass(&pass);
     {
-        int num_vertices = 36;
+        int num_vertices = 3981;
         sg_apply_pipeline(state.pip);
         sg_apply_bindings(&state.bind);
         sg_apply_uniforms(0, &SG_RANGE(vs_params));

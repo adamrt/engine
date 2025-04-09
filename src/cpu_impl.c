@@ -49,7 +49,7 @@ static struct {
     sg_sampler fb_sampler;
 
     // Renderables
-    face_t faces_to_render[256];
+    face_t faces_to_render[RENDERABLE_MAX_TRIANGLES];
     int num_faces;
 } state;
 
@@ -126,16 +126,16 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
 
     mat4s vertices_mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
 
-    int num_vertices = 36;
+    int num_vertices = 3981;
 
     for (int i = 0; i <= num_vertices - 3; i += 3) {
         vertex_t v0 = vertices[i];
         vertex_t v1 = vertices[i + 1];
         vertex_t v2 = vertices[i + 2];
 
-        vec4s a = (vec4s) { { v0.position.x, v0.position.y, v0.position.z, 1.0f } };
-        vec4s b = (vec4s) { { v1.position.x, v1.position.y, v1.position.z, 1.0f } };
-        vec4s c = (vec4s) { { v2.position.x, v2.position.y, v2.position.z, 1.0f } };
+        vec4s a = glms_vec4(v0.position, 1.0f);
+        vec4s b = glms_vec4(v1.position, 1.0f);
+        vec4s c = glms_vec4(v2.position, 1.0f);
 
         a = glms_mat4_mulv(vertices_mvp, a);
         b = glms_mat4_mulv(vertices_mvp, b);
@@ -162,11 +162,11 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
         // Convert from NDC [-1, 1] to framebuffer coordinates [0, FB_WIDTH/HEIGHT]
         // +1 is for [-1, 1] to [0, 2] and *0.5f is for [0, 2] to [0, 1].
         a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
-        a.y = (1.0f + a.y) * 0.5f * FB_HEIGHT;
+        a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
         b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
-        b.y = (1.0f + b.y) * 0.5f * FB_HEIGHT;
+        b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
         c.x = (1.0f + c.x) * 0.5f * FB_WIDTH;
-        c.y = (1.0f + c.y) * 0.5f * FB_HEIGHT;
+        c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
 
         face_t face = {
             .a = a,
@@ -185,7 +185,8 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
 
     // Draw triangles
     for (int i = 0; i < state.num_faces; i++) {
-        fb_draw_triangle_gouraud(state.faces_to_render[i].a, state.faces_to_render[i].b, state.faces_to_render[i].c, state.faces_to_render[i].color_a, state.faces_to_render[i].color_b, state.faces_to_render[i].color_c);
+        face_t face = state.faces_to_render[i];
+        fb_draw_triangle_gouraud(face.a, face.b, face.c, face.color_a, face.color_b, face.color_c);
     }
 
     for (int i = 0; i < scene->num_renderables; i++) {
@@ -213,9 +214,9 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
                     b.z /= b.w;
                 }
 
-                a.x = (a.x + 1.0f) * 0.5f * FB_WIDTH;
+                a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
                 a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
-                b.x = (b.x + 1.0f) * 0.5f * FB_WIDTH;
+                b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
                 b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
 
                 fb_draw_line(a.x, a.y, b.x, b.y, line.color);
@@ -268,7 +269,7 @@ static void fb_draw_pixel(int32_t x, int32_t y, uint32_t color) {
     if (x < 0 || x >= FB_WIDTH || y < 0 || y >= FB_HEIGHT) {
         return;
     }
-    state.framebuffer[(FB_HEIGHT - y - 1) * FB_WIDTH + x] = color;
+    state.framebuffer[y * FB_WIDTH + x] = color;
 }
 
 // draw_line uses the Bresenham's line algorithm

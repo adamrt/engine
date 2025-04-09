@@ -22,7 +22,7 @@ static struct {
 float gfx_aspect(void);
 
 void camera_init(void) {
-    camera.position = (vec3s) { { 0.0f, 0.0f, -3.0f } };
+    camera.position = (vec3s) { { 0.0f, 0.0f, -400.0f } };
     camera.target = (vec3s) { { 0.0f, 0.0f, 0.0f } };
     camera.world_up = (vec3s) { { 0.0f, 1.0f, 0.0f } };
 

@@ -33,15 +33,15 @@ static void init(void) {
     state_init();
     gfx_init();
     scene_add_axis();
-    renderable_t cube = renderable_cube();
-    scene_add_renderable(cube);
+    /* renderable_t cube = renderable_cube(); */
+    /* scene_add_renderable(cube); */
 }
 
 static void frame(void) {
     clock_update();
 
     // Update scene
-    state.transform.rotation.y += 0.01f;
+    state.transform.rotation.y += 0.001f;
 
     // Render frame
     mat4s proj = camera_proj();
