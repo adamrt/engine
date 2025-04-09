@@ -36,6 +36,15 @@ void camera_init(void) {
     camera.projection = PROJ_PERSPECTIVE;
 }
 
+void camera_move(float x, float y, float z) {
+    x *= 10.0f;
+    y *= 10.0f;
+    z *= 10.0f;
+    camera.position = glms_vec3_add(camera.position, (vec3s) { { x, y, z } });
+    camera.target = glms_vec3_add(camera.target, (vec3s) { { x, y, z } });
+    camera.view = glms_lookat(camera.position, camera.target, camera.world_up);
+}
+
 void camera_toggle(void) {
     camera.projection = (camera.projection == PROJ_PERSPECTIVE) ? PROJ_ORTHOGRAPHIC : PROJ_PERSPECTIVE;
 }

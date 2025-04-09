@@ -57,7 +57,10 @@ static void frame(void) {
 }
 
 static void event(const sapp_event* event) {
-    if (event->type == SAPP_EVENTTYPE_KEY_DOWN) {
+    switch (event->type) {
+    case SAPP_EVENTTYPE_MOUSE_DOWN:
+        break;
+    case SAPP_EVENTTYPE_KEY_DOWN:
         switch (event->key_code) {
         case SAPP_KEYCODE_ESCAPE:
             sapp_request_quit();
@@ -65,9 +68,31 @@ static void event(const sapp_event* event) {
         case SAPP_KEYCODE_SPACE:
             camera_toggle();
             break;
+        case SAPP_KEYCODE_W:
+            camera_move(0.0f, 0.0f, 1.0f);
+            break;
+        case SAPP_KEYCODE_S:
+            camera_move(0.0f, 0.0f, -1.0f);
+            break;
+        case SAPP_KEYCODE_A:
+            camera_move(-1.0f, 0.0f, 0.0f);
+            break;
+        case SAPP_KEYCODE_D:
+            camera_move(1.0f, 0.0f, 0.0f);
+            break;
+
+        case SAPP_KEYCODE_Q:
+            camera_move(0.0f, 1.0f, 0.0f);
+            break;
+        case SAPP_KEYCODE_E:
+            camera_move(0.0f, -1.0f, 0.0f);
+            break;
         default:
             break;
         }
+        break;
+    default:
+        break;
     }
 }
 
