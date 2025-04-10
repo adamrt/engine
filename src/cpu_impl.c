@@ -2,6 +2,7 @@
 #define CPU_IMPL_H_
 
 #include "cglm/struct/mat4.h"
+#include "cglm/struct/vec4.h"
 #include "cglm/types-struct.h"
 
 #include "renderable.h"
@@ -16,10 +17,17 @@
 #include "scene.h"
 #include "vertex.h"
 
-// Face represents a transformed triangle that can be ordered.
+typedef enum {
+    FACE_TYPE_NONE,
+    FACE_TYPE_TRIANGLE,
+    FACE_TYPE_QUAD,
+} face_type_e;
+
+// Face represents a transformed triangle or quad that can be ordered.
 typedef struct {
-    vec4s a, b, c;
-    vec4s color_a, color_b, color_c;
+    face_type_e type;
+    vec4s a, b, c, d;
+    vec4s color_a, color_b, color_c, color_d;
     float avg_z;
 } face_t;
 
@@ -49,7 +57,7 @@ static struct {
     sg_sampler fb_sampler;
 
     // Renderables
-    face_t faces_to_render[RENDERABLE_MAX_TRIANGLES];
+    face_t faces_to_render[RENDERABLE_MAX_FACES];
     int num_faces;
 } state;
 
@@ -120,88 +128,136 @@ void gfx_init(void) {
     state.pass_action = action;
 }
 
-void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
+void gfx_frame(mat4s proj, mat4s view, scene_t* scene) {
     state.num_faces = 0;
     fb_clear();
 
-    mat4s vertices_mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
-
-    int num_vertices = 3981;
-
-    for (int i = 0; i <= num_vertices - 3; i += 3) {
-        vertex_t v0 = vertices[i];
-        vertex_t v1 = vertices[i + 1];
-        vertex_t v2 = vertices[i + 2];
-
-        vec4s a = glms_vec4(v0.position, 1.0f);
-        vec4s b = glms_vec4(v1.position, 1.0f);
-        vec4s c = glms_vec4(v2.position, 1.0f);
-
-        a = glms_mat4_mulv(vertices_mvp, a);
-        b = glms_mat4_mulv(vertices_mvp, b);
-        c = glms_mat4_mulv(vertices_mvp, c);
-
-        // Perspective Divide. Works with ortho as well since W is always 1.0.
-        // FIXME: Remove for ortho performance since its a essentially a no-op.
-        if (a.w != 0.0f) {
-            a.x /= a.w;
-            a.y /= a.w;
-            a.z /= a.w;
-        }
-        if (b.w != 0.0f) {
-            b.x /= b.w;
-            b.y /= b.w;
-            b.z /= b.w;
-        }
-        if (c.w != 0.0f) {
-            c.x /= c.w;
-            c.y /= c.w;
-            c.z /= c.w;
-        }
-
-        // Convert from NDC [-1, 1] to framebuffer coordinates [0, FB_WIDTH/HEIGHT]
-        // +1 is for [-1, 1] to [0, 2] and *0.5f is for [0, 2] to [0, 1].
-        a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
-        a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
-        b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
-        b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
-        c.x = (1.0f + c.x) * 0.5f * FB_WIDTH;
-        c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
-
-        face_t face = {
-            .a = a,
-            .b = b,
-            .c = c,
-            .color_a = v0.color,
-            .color_b = v1.color,
-            .color_c = v2.color,
-            .avg_z = (face.a.z + face.b.z + face.c.z) / 3.0f,
-        };
-        state.faces_to_render[state.num_faces++] = face;
-    }
-
-    // Sort back to front for painters algorithm.
-    qsort(state.faces_to_render, state.num_faces, sizeof(face_t), sort_faces);
-
-    // Draw triangles
-    for (int i = 0; i < state.num_faces; i++) {
-        face_t face = state.faces_to_render[i];
-        fb_draw_triangle_gouraud(face.a, face.b, face.c, face.color_a, face.color_b, face.color_c);
-    }
-
     for (int i = 0; i < scene->num_renderables; i++) {
         renderable_t* renderable = &scene->renderables[i];
-        mat4s renderable_model = renderable_model_matrix(renderable->transform);
-        mat4s renderable_mvp = glms_mat4_mul(proj, glms_mat4_mul(view, renderable_model));
+        mat4s model = renderable_model_matrix(renderable->transform);
+        mat4s mvp = glms_mat4_mul(proj, glms_mat4_mul(view, model));
+
+        if (renderable->type == RENDERABLE_TYPE_MESH) {
+            for (int j = 0; j < renderable->mesh.num_triangles; j++) {
+                triangle_t tri = renderable->mesh.triangles[j];
+                vec4s a = glms_vec4(tri.a.position, 1.0f);
+                vec4s b = glms_vec4(tri.b.position, 1.0f);
+                vec4s c = glms_vec4(tri.c.position, 1.0f);
+
+                a = glms_mat4_mulv(mvp, a);
+                b = glms_mat4_mulv(mvp, b);
+                c = glms_mat4_mulv(mvp, c);
+
+                // Perspective Divide. Works with ortho as well since W is always 1.0.
+                // FIXME: Remove for ortho performance since its a essentially a no-op.
+                if (a.w != 0.0f) {
+                    a.x /= a.w;
+                    a.y /= a.w;
+                    a.z /= a.w;
+                }
+                if (b.w != 0.0f) {
+                    b.x /= b.w;
+                    b.y /= b.w;
+                    b.z /= b.w;
+                }
+                if (c.w != 0.0f) {
+                    c.x /= c.w;
+                    c.y /= c.w;
+                    c.z /= c.w;
+                }
+
+                // Convert from NDC [-1, 1] to framebuffer coordinates [0, FB_WIDTH/HEIGHT]
+                // +1 is for [-1, 1] to [0, 2] and *0.5f is for [0, 2] to [0, 1].
+                a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
+                a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
+                b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
+                b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
+                c.x = (1.0f + c.x) * 0.5f * FB_WIDTH;
+                c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
+
+                face_t face = {
+                    .type = FACE_TYPE_TRIANGLE,
+                    .a = a,
+                    .b = b,
+                    .c = c,
+                    .color_a = tri.a.color,
+                    .color_b = tri.b.color,
+                    .color_c = tri.c.color,
+                    .avg_z = (a.z + b.z + c.z) / 3.0f,
+                };
+                state.faces_to_render[state.num_faces++] = face;
+            }
+
+            for (int j = 0; j < renderable->mesh.num_quads; j++) {
+                quad_t quad = renderable->mesh.quads[j];
+                vec4s a = glms_vec4(quad.a.position, 1.0f);
+                vec4s b = glms_vec4(quad.b.position, 1.0f);
+                vec4s c = glms_vec4(quad.c.position, 1.0f);
+                vec4s d = glms_vec4(quad.d.position, 1.0f);
+
+                a = glms_mat4_mulv(mvp, a);
+                b = glms_mat4_mulv(mvp, b);
+                c = glms_mat4_mulv(mvp, c);
+                d = glms_mat4_mulv(mvp, d);
+
+                // Perspective Divide. Works with ortho as well since W is always 1.0.
+                // FIXME: Remove for ortho performance since its a essentially a no-op.
+                if (a.w != 0.0f) {
+                    a.x /= a.w;
+                    a.y /= a.w;
+                    a.z /= a.w;
+                }
+                if (b.w != 0.0f) {
+                    b.x /= b.w;
+                    b.y /= b.w;
+                    b.z /= b.w;
+                }
+                if (c.w != 0.0f) {
+                    c.x /= c.w;
+                    c.y /= c.w;
+                    c.z /= c.w;
+                }
+                if (d.w != 0.0f) {
+                    d.x /= d.w;
+                    d.y /= d.w;
+                    d.z /= d.w;
+                }
+
+                // Convert from NDC [-1, 1] to framebuffer coordinates [0, FB_WIDTH/HEIGHT]
+                // +1 is for [-1, 1] to [0, 2] and *0.5f is for [0, 2] to [0, 1].
+                a.x = (1.0f + a.x) * 0.5f * FB_WIDTH;
+                a.y = (1.0f - a.y) * 0.5f * FB_HEIGHT;
+                b.x = (1.0f + b.x) * 0.5f * FB_WIDTH;
+                b.y = (1.0f - b.y) * 0.5f * FB_HEIGHT;
+                c.x = (1.0f + c.x) * 0.5f * FB_WIDTH;
+                c.y = (1.0f - c.y) * 0.5f * FB_HEIGHT;
+                d.x = (1.0f + d.x) * 0.5f * FB_WIDTH;
+                d.y = (1.0f - d.y) * 0.5f * FB_HEIGHT;
+
+                face_t face = {
+                    .type = FACE_TYPE_QUAD,
+                    .a = a,
+                    .b = b,
+                    .c = c,
+                    .d = d,
+                    .color_a = quad.a.color,
+                    .color_b = quad.b.color,
+                    .color_c = quad.c.color,
+                    .color_d = quad.d.color,
+                    .avg_z = (a.z + b.z + c.z + d.z) / 4.0f,
+                };
+                state.faces_to_render[state.num_faces++] = face;
+            }
+        }
 
         if (renderable->type == RENDERABLE_TYPE_LINE) {
             for (int j = 0; j < renderable->num_lines; j++) {
                 line_t line = renderable->lines[j];
-                vec4s a = (vec4s) { { line.start.x, line.start.y, line.start.z, 1.0f } };
-                vec4s b = (vec4s) { { line.end.x, line.end.y, line.end.z, 1.0f } };
+                vec4s a = glms_vec4(line.start, 1.0f);
+                vec4s b = glms_vec4(line.end, 1.0f);
 
-                a = glms_mat4_mulv(renderable_mvp, a);
-                b = glms_mat4_mulv(renderable_mvp, b);
+                a = glms_mat4_mulv(mvp, a);
+                b = glms_mat4_mulv(mvp, b);
 
                 if (a.w != 0.0f) {
                     a.x /= a.w;
@@ -221,6 +277,20 @@ void gfx_frame(mat4s proj, mat4s view, mat4s model, scene_t* scene) {
 
                 fb_draw_line(a.x, a.y, b.x, b.y, line.color);
             }
+        }
+    }
+
+    // Sort back to front for painters algorithm.
+    qsort(state.faces_to_render, state.num_faces, sizeof(face_t), sort_faces);
+
+    // Draw triangles and quads
+    for (int i = 0; i < state.num_faces; i++) {
+        face_t face = state.faces_to_render[i];
+        if (face.type == FACE_TYPE_QUAD) {
+            fb_draw_triangle_gouraud(face.a, face.b, face.c, face.color_a, face.color_b, face.color_c);
+            fb_draw_triangle_gouraud(face.b, face.d, face.c, face.color_b, face.color_d, face.color_d);
+        } else if (face.type == FACE_TYPE_TRIANGLE) {
+            fb_draw_triangle_gouraud(face.a, face.b, face.c, face.color_a, face.color_b, face.color_c);
         }
     }
 

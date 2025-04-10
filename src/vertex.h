@@ -3,6 +3,7 @@
 
 #include "renderable.h"
 
-extern vertex_t vertices[];
+extern vertex_t tri_verts[];
+extern vertex_t quad_verts[];
 
 #endif // VERTICES_H_

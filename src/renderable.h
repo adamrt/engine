@@ -10,6 +10,8 @@
 #define RENDERABLE_MAX_QUADS     (1024)
 #define RENDERABLE_MAX_LINES     (16)
 
+#define RENDERABLE_MAX_FACES (RENDERABLE_MAX_TRIANGLES + RENDERABLE_MAX_QUADS)
+
 typedef enum {
     RENDERABLE_TYPE_NONE,
     RENDERABLE_TYPE_MESH,
@@ -59,6 +61,6 @@ typedef struct {
 } renderable_t;
 
 mat4s renderable_model_matrix(transform_t transform);
-renderable_t renderable_cube(void);
+renderable_t renderable_mesh(void);
 
 #endif // RENDERABLE_H_
